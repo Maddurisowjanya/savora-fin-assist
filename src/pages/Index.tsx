@@ -2,15 +2,16 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowRight, BarChart3, Brain, Shield } from 'lucide-react';
+import { ArrowRight, BarChart3, Brain, Shield, Upload, Target, CreditCard, Bell, TrendingUp, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import savoraLogo from '@/assets/savora-logo.jpg';
 
 export default function Index() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!loading && user) navigate('/dashboard');
+    if (!loading && user) navigate('/dashboard', { replace: true });
   }, [user, loading, navigate]);
 
   if (loading) return null;
@@ -19,7 +20,10 @@ export default function Index() {
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
       <header className="flex items-center justify-between px-6 md:px-12 py-4">
-        <h1 className="text-2xl font-bold font-display gradient-text">Savora</h1>
+        <div className="flex items-center gap-2">
+          <img src={savoraLogo} alt="Savora" className="h-9 w-9 rounded-lg object-cover" />
+          <h1 className="text-2xl font-bold font-display gradient-text">Savora</h1>
+        </div>
         <Button variant="outline" onClick={() => navigate('/auth')}>Sign In</Button>
       </header>
 
@@ -54,19 +58,26 @@ export default function Index() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.3 }}
-            className="grid md:grid-cols-3 gap-6 mt-20"
+            className="grid sm:grid-cols-2 md:grid-cols-3 gap-4 mt-16"
           >
             {[
               { icon: BarChart3, title: 'Smart Analytics', desc: 'Visual dashboards with category insights and trend analysis' },
               { icon: Brain, title: 'AI Advisor', desc: 'Conversational assistant that understands your financial goals' },
               { icon: Shield, title: 'Risk Assessment', desc: 'Real-time risk scoring to keep your finances healthy' },
+              { icon: Upload, title: 'CSV Import', desc: 'Upload bank statements and auto-categorize transactions' },
+              { icon: Target, title: 'Goal Planner', desc: 'Set savings goals and track your progress with projections' },
+              { icon: User, title: 'Spending Personality', desc: 'AI-powered financial behavior classification' },
+              { icon: CreditCard, title: 'Subscriptions', desc: 'Auto-detect recurring payments and manage subscriptions' },
+              { icon: Bell, title: 'Smart Alerts', desc: 'Intelligent contextual alerts about your spending' },
+              { icon: TrendingUp, title: 'Predictions', desc: 'AI-powered spending predictions and savings forecasts' },
             ].map(({ icon: Icon, title, desc }, i) => (
               <motion.div
                 key={title}
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5 + i * 0.1 }}
-                className="stat-card text-center"
+                transition={{ delay: 0.5 + i * 0.06 }}
+                className="stat-card text-center cursor-pointer hover:border-primary/30 transition-colors"
+                onClick={() => navigate('/auth')}
               >
                 <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mx-auto mb-3">
                   <Icon className="w-5 h-5 text-primary" />
