@@ -8,7 +8,7 @@ import {
   LayoutDashboard, ArrowLeftRight, MessageSquare,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import savoraLogo from '@/assets/savora-logo.jpg';
+
 
 const navFeatures = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -41,7 +41,7 @@ export default function Index() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
-    if (!loading && user) navigate('/dashboard', { replace: true });
+    if (!loading && user) navigate('/home', { replace: true });
   }, [user, loading, navigate]);
 
   if (loading) return null;
@@ -57,7 +57,6 @@ export default function Index() {
       <header className="fixed top-0 left-0 right-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto flex items-center justify-between px-4 md:px-8 h-16">
           <div className="flex items-center gap-2.5">
-            <img src={savoraLogo} alt="Savora" className="h-8 w-8 rounded-lg object-cover" />
             <span className="text-xl font-bold font-display gradient-text">Savora</span>
           </div>
 
@@ -117,7 +116,6 @@ export default function Index() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7 }}
           >
-            <img src={savoraLogo} alt="Savora" className="h-16 w-16 rounded-2xl object-cover mx-auto mb-6 shadow-lg" />
             <span className="inline-block px-4 py-1.5 rounded-full text-xs font-medium bg-primary/10 text-primary mb-6">
               AI-Powered Financial Intelligence
             </span>
