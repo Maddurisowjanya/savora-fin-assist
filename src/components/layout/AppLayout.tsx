@@ -1,8 +1,8 @@
 import { ReactNode } from 'react';
-import savoraLogo from '@/assets/savora-logo.jpg';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import {
+  Home,
   LayoutDashboard,
   ArrowLeftRight,
   MessageSquare,
@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 
 const navItems = [
+  { to: '/home', label: 'Home', icon: Home },
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/transactions', label: 'Transactions', icon: ArrowLeftRight },
   { to: '/import', label: 'Import CSV', icon: Upload },
@@ -42,12 +43,9 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     <div className="flex h-screen bg-background">
       {/* Sidebar */}
       <aside className="hidden md:flex w-64 flex-col border-r border-border bg-card">
-        <div className="p-6 flex items-center gap-2.5">
-          <img src={savoraLogo} alt="Savora" className="h-8 w-8 rounded-lg object-cover" />
-          <div>
-            <h1 className="text-xl font-bold font-display gradient-text">Savora</h1>
-            <p className="text-xs text-muted-foreground mt-0.5">Financial Intelligence</p>
-          </div>
+        <div className="p-6">
+          <h1 className="text-xl font-bold font-display gradient-text">Savora</h1>
+          <p className="text-xs text-muted-foreground mt-0.5">Financial Intelligence</p>
         </div>
 
         <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto">
@@ -93,10 +91,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       {/* Mobile header */}
       <div className="flex flex-col flex-1 overflow-hidden">
         <header className="md:hidden flex items-center justify-between p-4 border-b border-border bg-card">
-          <div className="flex items-center gap-2">
-            <img src={savoraLogo} alt="Savora" className="h-7 w-7 rounded-lg object-cover" />
-            <h1 className="text-xl font-bold font-display gradient-text">Savora</h1>
-          </div>
+          <h1 className="text-xl font-bold font-display gradient-text">Savora</h1>
           <button onClick={handleSignOut} className="text-muted-foreground">
             <LogOut className="w-5 h-5" />
           </button>
