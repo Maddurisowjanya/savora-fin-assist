@@ -10,15 +10,26 @@ export interface Transaction {
   user_id?: string;
 }
 
+export interface FinancialGoal {
+  id: string;
+  name: string;
+  targetAmount: number;
+  targetDate: string;
+  createdAt: string;
+}
+
 interface FinanceStore {
   transactions: Transaction[];
+  goals: FinancialGoal[];
   addTransaction: (t: Omit<Transaction, 'id'>) => void;
+  addTransactions: (ts: Omit<Transaction, 'id'>[]) => void;
   updateTransaction: (id: string, t: Partial<Transaction>) => void;
   deleteTransaction: (id: string) => void;
   setTransactions: (t: Transaction[]) => void;
+  addGoal: (g: Omit<FinancialGoal, 'id' | 'createdAt'>) => void;
+  removeGoal: (id: string) => void;
 }
 
-// Sample data for demo
 const SAMPLE_TRANSACTIONS: Transaction[] = [
   { id: '1', date: '2026-03-01', description: 'Monthly Salary', amount: 85000, type: 'income', category: 'Salary' },
   { id: '2', date: '2026-03-01', description: 'Rent Payment', amount: 25000, type: 'expense', category: 'Bills & Utilities' },
@@ -39,13 +50,24 @@ const SAMPLE_TRANSACTIONS: Transaction[] = [
   { id: '17', date: '2026-01-28', description: 'Spotify Premium', amount: 119, type: 'expense', category: 'Subscriptions' },
   { id: '18', date: '2026-01-15', description: 'Monthly Salary', amount: 85000, type: 'income', category: 'Salary' },
   { id: '19', date: '2026-01-01', description: 'Monthly Salary', amount: 85000, type: 'income', category: 'Salary' },
+  // Weekend spending samples
+  { id: '20', date: '2026-02-22', description: 'Restaurant dinner', amount: 1200, type: 'expense', category: 'Food & Dining' },
+  { id: '21', date: '2026-02-23', description: 'Shopping mall', amount: 3500, type: 'expense', category: 'Shopping' },
+  { id: '22', date: '2026-03-01', description: 'Gym Membership', amount: 1500, type: 'expense', category: 'Health' },
 ];
 
 export const useFinanceStore = create<FinanceStore>((set) => ({
   transactions: SAMPLE_TRANSACTIONS,
+  goals: [
+    { id: 'demo-1', name: 'MacBook Pro', targetAmount: 200000, targetDate: '2026-09-01', createdAt: '2026-01-15' },
+  ],
   addTransaction: (t) =>
     set((state) => ({
       transactions: [{ ...t, id: crypto.randomUUID() }, ...state.transactions],
+    })),
+  addTransactions: (ts) =>
+    set((state) => ({
+      transactions: [...ts.map(t => ({ ...t, id: crypto.randomUUID() })), ...state.transactions],
     })),
   updateTransaction: (id, updates) =>
     set((state) => ({
@@ -56,4 +78,12 @@ export const useFinanceStore = create<FinanceStore>((set) => ({
       transactions: state.transactions.filter((t) => t.id !== id),
     })),
   setTransactions: (transactions) => set({ transactions }),
+  addGoal: (g) =>
+    set((state) => ({
+      goals: [...state.goals, { ...g, id: crypto.randomUUID(), createdAt: new Date().toISOString().slice(0, 10) }],
+    })),
+  removeGoal: (id) =>
+    set((state) => ({
+      goals: state.goals.filter((g) => g.id !== id),
+    })),
 }));

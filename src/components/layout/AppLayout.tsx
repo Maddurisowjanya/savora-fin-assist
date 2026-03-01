@@ -10,13 +10,19 @@ import {
   Bell,
   LogOut,
   TrendingUp,
+  Upload,
+  Target,
+  User,
 } from 'lucide-react';
 
 const navItems = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/transactions', label: 'Transactions', icon: ArrowLeftRight },
+  { to: '/import', label: 'Import CSV', icon: Upload },
   { to: '/predictions', label: 'Predictions', icon: TrendingUp },
   { to: '/subscriptions', label: 'Subscriptions', icon: CreditCard },
+  { to: '/goals', label: 'Goals', icon: Target },
+  { to: '/personality', label: 'Personality', icon: User },
   { to: '/risk', label: 'Risk Score', icon: Shield },
   { to: '/alerts', label: 'Alerts', icon: Bell },
   { to: '/chat', label: 'AI Assistant', icon: MessageSquare },
@@ -40,13 +46,13 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           <p className="text-xs text-muted-foreground mt-1">Financial Intelligence</p>
         </div>
 
-        <nav className="flex-1 px-3 space-y-1">
+        <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto">
           {navItems.map(({ to, label, icon: Icon }) => (
             <NavLink
               key={to}
               to={to}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+                `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                   isActive
                     ? 'bg-primary/10 text-primary'
                     : 'text-muted-foreground hover:bg-muted hover:text-foreground'

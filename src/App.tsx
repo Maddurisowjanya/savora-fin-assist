@@ -13,6 +13,9 @@ import Subscriptions from "./pages/Subscriptions";
 import Risk from "./pages/Risk";
 import Alerts from "./pages/Alerts";
 import Chat from "./pages/Chat";
+import CSVUpload from "./pages/CSVUpload";
+import Goals from "./pages/Goals";
+import Personality from "./pages/Personality";
 import AppLayout from "./components/layout/AppLayout";
 import NotFound from "./pages/NotFound";
 
@@ -42,6 +45,9 @@ const App = () => (
             <Route path="/risk" element={<ProtectedRoute><Risk /></ProtectedRoute>} />
             <Route path="/alerts" element={<ProtectedRoute><Alerts /></ProtectedRoute>} />
             <Route path="/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
+            <Route path="/import" element={<ProtectedRoute><CSVUpload /></ProtectedRoute>} />
+            <Route path="/goals" element={<ProtectedRoute><Goals /></ProtectedRoute>} />
+            <Route path="/personality" element={<ProtectedRoute><Personality /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
