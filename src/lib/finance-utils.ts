@@ -328,10 +328,8 @@ export function generateMonthlyInsight(transactions: Transaction[]): string {
     return { savingsRate: totalIncome > 0 ? savings / totalIncome : 0 };
   })();
 
-  // Time-based spending patterns
   const expenses = transactions.filter(t => t.type === 'expense');
 
-  // Volatility analysis per category
   if (monthly.length >= 2 && categories.length >= 2) {
     const stableCategories = categories.filter(c => {
       const amounts = monthly.map(m => {
@@ -361,7 +359,6 @@ export function generateMonthlyInsight(transactions: Transaction[]): string {
     }
   }
 
-  // Savings trend
   if (monthly.length >= 3) {
     const recentSavings = monthly.slice(-3).map(m => m.savings);
     const improving = recentSavings[2] > recentSavings[1] && recentSavings[1] > recentSavings[0];
@@ -370,7 +367,6 @@ export function generateMonthlyInsight(transactions: Transaction[]): string {
     if (declining) return 'Savings have been declining for 3 months. Review your top spending categories.';
   }
 
-  // Top category insight
   if (categories.length > 0) {
     const top = categories[0];
     const totalExp = categories.reduce((s, c) => s + c.value, 0);
@@ -383,4 +379,221 @@ export function generateMonthlyInsight(transactions: Transaction[]): string {
   if (savingsRate > 0.3) return 'You\'re saving over 30% of your income — you\'re ahead of most financial benchmarks.';
 
   return 'Consistent tracking is the first step to financial freedom. Keep logging your transactions!';
+}
+
+/* ── Spending Anomaly Detection ── */
+export interface SpendingAnomaly {
+  transaction: Transaction;
+  categoryAvg: number;
+  deviation: number; // how many standard deviations above
+  severity: 'mild' | 'moderate' | 'severe';
+}
+
+export function detectSpendingAnomalies(transactions: Transaction[]): SpendingAnomaly[] {
+  const expenses = transactions.filter(t => t.type === 'expense');
+  const categoryStats: Record<string, { amounts: number[] }> = {};
+
+  expenses.forEach(t => {
+    if (!categoryStats[t.category]) categoryStats[t.category] = { amounts: [] };
+    categoryStats[t.category].amounts.push(t.amount);
+  });
+
+  const anomalies: SpendingAnomaly[] = [];
+
+  expenses.forEach(t => {
+    const stats = categoryStats[t.category];
+    if (!stats || stats.amounts.length < 3) return;
+    const avg = stats.amounts.reduce((a, b) => a + b, 0) / stats.amounts.length;
+    const stdDev = Math.sqrt(stats.amounts.reduce((a, b) => a + Math.pow(b - avg, 2), 0) / stats.amounts.length);
+    if (stdDev === 0) return;
+    const zScore = (t.amount - avg) / stdDev;
+    if (zScore > 1.5) {
+      anomalies.push({
+        transaction: t,
+        categoryAvg: Math.round(avg),
+        deviation: Math.round(zScore * 10) / 10,
+        severity: zScore > 3 ? 'severe' : zScore > 2 ? 'moderate' : 'mild',
+      });
+    }
+  });
+
+  return anomalies.sort((a, b) => b.deviation - a.deviation).slice(0, 10);
+}
+
+/* ── AI Financial Advisor ── */
+export interface FinancialAdvice {
+  category: 'savings' | 'spending' | 'investment' | 'debt' | 'insurance' | 'general';
+  priority: 'high' | 'medium' | 'low';
+  title: string;
+  description: string;
+  icon: string;
+}
+
+export function generateFinancialAdvice(
+  transactions: Transaction[],
+  commitments: {
+    totalEMI: number;
+    totalSIP: number;
+    insuranceDue: number;
+    loanOutstanding: number;
+  }
+): FinancialAdvice[] {
+  const advice: FinancialAdvice[] = [];
+  const { totalIncome, totalExpenses, savings, ratio } = getFinancialSummary(transactions);
+  const monthly = getMonthlySummary(transactions);
+  const categories = getCategoryBreakdown(transactions);
+  const savingsRate = totalIncome > 0 ? savings / totalIncome : 0;
+  const totalCommitments = commitments.totalEMI + commitments.totalSIP;
+  const commitmentRatio = totalIncome > 0 ? totalCommitments / (totalIncome / (monthly.length || 1)) : 0;
+
+  // Savings advice
+  if (savingsRate < 0.1) {
+    advice.push({
+      category: 'savings', priority: 'high', icon: '🚨',
+      title: 'Critical: Savings Below 10%',
+      description: `You're only saving ${Math.round(savingsRate * 100)}% of income. Aim for at least 20%. Consider automating ₹${Math.round(totalIncome * 0.1 / (monthly.length || 1)).toLocaleString()}/mo to a savings account.`,
+    });
+  } else if (savingsRate < 0.2) {
+    advice.push({
+      category: 'savings', priority: 'medium', icon: '💡',
+      title: 'Boost Your Savings Rate',
+      description: `At ${Math.round(savingsRate * 100)}%, you're below the recommended 20%. Reducing discretionary spending by ₹${Math.round((totalExpenses * 0.1) / (monthly.length || 1)).toLocaleString()}/mo could help.`,
+    });
+  } else if (savingsRate > 0.35) {
+    advice.push({
+      category: 'savings', priority: 'low', icon: '🌟',
+      title: 'Excellent Savings Habit',
+      description: `You're saving ${Math.round(savingsRate * 100)}% — well above benchmarks. Consider channeling excess into investments for better returns.`,
+    });
+  }
+
+  // Spending reduction advice
+  const discretionary = categories.filter(c =>
+    ['Entertainment', 'Shopping', 'Food & Dining', 'Subscriptions'].includes(c.name)
+  );
+  const discretionaryTotal = discretionary.reduce((s, c) => s + c.value, 0);
+  const discretionaryRatio = totalExpenses > 0 ? discretionaryTotal / totalExpenses : 0;
+  if (discretionaryRatio > 0.4) {
+    const topDisc = discretionary[0];
+    advice.push({
+      category: 'spending', priority: 'high', icon: '✂️',
+      title: `Cut Back on ${topDisc?.name || 'Discretionary Spending'}`,
+      description: `${Math.round(discretionaryRatio * 100)}% of expenses go to discretionary categories. Reducing ${topDisc?.name} by 20% saves ₹${Math.round((topDisc?.value || 0) * 0.2 / (monthly.length || 1)).toLocaleString()}/mo.`,
+    });
+  }
+
+  // Subscription optimization
+  const subs = detectSubscriptions(transactions);
+  const subTotal = subs.reduce((s, sub) => s + sub.amount, 0);
+  if (subTotal > 1500) {
+    advice.push({
+      category: 'spending', priority: 'medium', icon: '🔄',
+      title: 'Review Subscriptions',
+      description: `You spend ₹${subTotal.toLocaleString()}/mo on ${subs.length} subscriptions (₹${(subTotal * 12).toLocaleString()}/yr). Review which ones you actively use.`,
+    });
+  }
+
+  // Debt management
+  if (commitments.loanOutstanding > 0 && commitments.totalEMI > 0) {
+    const monthlyIncome = totalIncome / (monthly.length || 1);
+    const emiRatio = commitments.totalEMI / monthlyIncome;
+    if (emiRatio > 0.4) {
+      advice.push({
+        category: 'debt', priority: 'high', icon: '⚠️',
+        title: 'High EMI Burden',
+        description: `EMIs consume ${Math.round(emiRatio * 100)}% of monthly income. Consider prepaying high-interest loans or consolidating debt.`,
+      });
+    }
+  }
+
+  // Insurance
+  if (commitments.insuranceDue > 0) {
+    advice.push({
+      category: 'insurance', priority: 'medium', icon: '🛡️',
+      title: 'Insurance Premiums Due',
+      description: `₹${commitments.insuranceDue.toLocaleString()} in insurance premiums are pending. Ensure timely payment to avoid policy lapses.`,
+    });
+  }
+
+  // Investment advice
+  if (savingsRate > 0.15 && commitments.totalSIP < totalIncome * 0.1 / (monthly.length || 1)) {
+    advice.push({
+      category: 'investment', priority: 'medium', icon: '📈',
+      title: 'Increase Investment Allocation',
+      description: `With a healthy savings rate, consider increasing SIP contributions. Even ₹${Math.round(totalIncome * 0.05 / (monthly.length || 1)).toLocaleString()}/mo more in mutual funds compounds significantly over time.`,
+    });
+  }
+
+  // Emergency fund
+  const monthlyExpenses = totalExpenses / (monthly.length || 1);
+  advice.push({
+    category: 'general', priority: 'medium', icon: '🏦',
+    title: 'Emergency Fund Check',
+    description: `Aim for 6 months of expenses (₹${Math.round(monthlyExpenses * 6).toLocaleString()}) in liquid savings for unexpected events.`,
+  });
+
+  return advice.sort((a, b) => {
+    const p = { high: 0, medium: 1, low: 2 };
+    return p[a.priority] - p[b.priority];
+  });
+}
+
+/* ── Investment Recommendation ── */
+export type RiskProfile = 'conservative' | 'moderate' | 'aggressive';
+
+export interface InvestmentRecommendation {
+  type: string;
+  allocation: number; // percentage
+  description: string;
+  expectedReturn: string;
+  risk: 'low' | 'medium' | 'high';
+}
+
+export function getInvestmentRecommendations(
+  transactions: Transaction[],
+  commitments: { totalEMI: number; totalSIP: number; loanOutstanding: number }
+): { profile: RiskProfile; recommendations: InvestmentRecommendation[]; monthlyInvestable: number } {
+  const { totalIncome, totalExpenses, savings } = getFinancialSummary(transactions);
+  const monthly = getMonthlySummary(transactions);
+  const monthCount = monthly.length || 1;
+  const monthlyIncome = totalIncome / monthCount;
+  const monthlySavings = savings / monthCount;
+  const savingsRate = totalIncome > 0 ? savings / totalIncome : 0;
+  const { score } = calculateRiskScore(transactions);
+  const emiRatio = monthlyIncome > 0 ? commitments.totalEMI / monthlyIncome : 0;
+
+  // Determine risk profile
+  let profile: RiskProfile;
+  if (savingsRate > 0.3 && score <= 30 && emiRatio < 0.2) {
+    profile = 'aggressive';
+  } else if (savingsRate > 0.15 && score <= 60) {
+    profile = 'moderate';
+  } else {
+    profile = 'conservative';
+  }
+
+  const monthlyInvestable = Math.max(0, Math.round(monthlySavings - commitments.totalSIP - commitments.totalEMI));
+
+  const recommendations: Record<RiskProfile, InvestmentRecommendation[]> = {
+    conservative: [
+      { type: 'Fixed Deposits', allocation: 40, description: 'Bank FDs with guaranteed returns. Ideal for emergency fund building.', expectedReturn: '6-7% p.a.', risk: 'low' },
+      { type: 'Debt Mutual Funds', allocation: 30, description: 'Low-risk funds investing in government and corporate bonds.', expectedReturn: '7-8% p.a.', risk: 'low' },
+      { type: 'PPF / NPS', allocation: 20, description: 'Tax-saving instruments with long-term wealth creation.', expectedReturn: '7-8% p.a.', risk: 'low' },
+      { type: 'Gold ETFs', allocation: 10, description: 'Hedge against inflation with digital gold exposure.', expectedReturn: '8-10% p.a.', risk: 'medium' },
+    ],
+    moderate: [
+      { type: 'Large Cap Mutual Funds', allocation: 35, description: 'Blue-chip equity funds for stable long-term growth.', expectedReturn: '10-12% p.a.', risk: 'medium' },
+      { type: 'Balanced / Hybrid Funds', allocation: 25, description: 'Mix of equity and debt for balanced risk-return.', expectedReturn: '9-11% p.a.', risk: 'medium' },
+      { type: 'Fixed Deposits', allocation: 20, description: 'Guaranteed returns for the conservative portion.', expectedReturn: '6-7% p.a.', risk: 'low' },
+      { type: 'Gold & REITs', allocation: 20, description: 'Diversify with real estate and gold for inflation protection.', expectedReturn: '8-10% p.a.', risk: 'medium' },
+    ],
+    aggressive: [
+      { type: 'Equity Mutual Funds', allocation: 40, description: 'Mid & small cap funds for high growth potential.', expectedReturn: '12-15% p.a.', risk: 'high' },
+      { type: 'Direct Equities', allocation: 25, description: 'Individual stock picks in growth sectors.', expectedReturn: '12-18% p.a.', risk: 'high' },
+      { type: 'Large Cap Funds', allocation: 20, description: 'Stable equity exposure through blue-chip companies.', expectedReturn: '10-12% p.a.', risk: 'medium' },
+      { type: 'International Funds', allocation: 15, description: 'Global diversification with US/emerging market exposure.', expectedReturn: '10-14% p.a.', risk: 'high' },
+    ],
+  };
+
+  return { profile, recommendations: recommendations[profile], monthlyInvestable };
 }

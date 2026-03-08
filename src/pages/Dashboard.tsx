@@ -1,8 +1,8 @@
 import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
-import { TrendingUp, TrendingDown, Wallet, PiggyBank, Sparkles, Lightbulb, ShieldCheck, LineChart, Banknote, Landmark, PieChart } from 'lucide-react';
+import { TrendingUp, TrendingDown, Wallet, PiggyBank, Sparkles, Lightbulb, ShieldCheck, LineChart, Banknote, Landmark, PieChart, Brain, AlertTriangle, BarChart3, Heart } from 'lucide-react';
 import { PieChart as RePieChart, Pie, Cell, ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from 'recharts';
 import { useFinanceStore } from '@/lib/store';
-import { getFinancialSummary, getMonthlySummary, getCategoryBreakdown, calculateRiskScore, generateAlerts, generateMonthlyInsight } from '@/lib/finance-utils';
+import { getFinancialSummary, getMonthlySummary, getCategoryBreakdown, calculateRiskScore, generateAlerts, generateMonthlyInsight, generateFinancialAdvice, detectSpendingAnomalies, getInvestmentRecommendations } from '@/lib/finance-utils';
 import { CATEGORY_COLORS } from '@/lib/categories';
 import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -41,6 +41,27 @@ function RiskGauge({ score, level }: { score: number; level: string }) {
   );
 }
 
+/* ── Financial Health Bar ── */
+function HealthIndicator({ label, value, max, color }: { label: string; value: number; max: number; color: string }) {
+  const pct = Math.min(100, Math.round((value / max) * 100));
+  return (
+    <div>
+      <div className="flex justify-between text-xs mb-1">
+        <span className="text-muted-foreground">{label}</span>
+        <span className="font-semibold">{pct}%</span>
+      </div>
+      <div className="h-2 rounded-full bg-muted overflow-hidden">
+        <motion.div
+          className={`h-full rounded-full ${color}`}
+          initial={{ width: 0 }}
+          animate={{ width: `${pct}%` }}
+          transition={{ duration: 1, ease: 'easeOut' }}
+        />
+      </div>
+    </div>
+  );
+}
+
 function GlassCard({ children, className = '', onClick }: { children: React.ReactNode; className?: string; onClick?: () => void }) {
   return (
     <motion.div onClick={onClick}
@@ -68,6 +89,14 @@ export default function DashboardPage() {
   const totalEMI = emis.reduce((s, e) => s + e.emiAmount, 0);
   const totalLoanOutstanding = loans.reduce((s, l) => s + l.remainingBalance, 0);
   const latestSavings = savingsDivisions[savingsDivisions.length - 1];
+
+  // New features data
+  const topAdvice = generateFinancialAdvice(transactions, { totalEMI, totalSIP: totalSIPMonthly, insuranceDue, loanOutstanding: totalLoanOutstanding }).slice(0, 3);
+  const anomalies = detectSpendingAnomalies(transactions);
+  const { profile, recommendations } = getInvestmentRecommendations(transactions, { totalEMI, totalSIP: totalSIPMonthly, loanOutstanding: totalLoanOutstanding });
+
+  const savingsRate = totalIncome > 0 ? savings / totalIncome : 0;
+  const monthlyIncome = totalIncome / (monthly.length || 1);
 
   const stats = [
     { label: 'Total Income', value: totalIncome, icon: TrendingUp, accent: 'from-emerald-400 to-emerald-600' },
@@ -134,6 +163,109 @@ export default function DashboardPage() {
           ))}
         </motion.div>
 
+        {/* Financial Health Indicators */}
+        <motion.div variants={item}>
+          <GlassCard>
+            <div className="flex items-center gap-2 mb-4">
+              <Heart className="w-4 h-4 text-primary" />
+              <h3 className="text-base font-semibold font-display">Financial Health</h3>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <HealthIndicator label="Savings Rate" value={savingsRate * 100} max={100} color="bg-success" />
+              <HealthIndicator label="Debt-to-Income" value={totalEMI > 0 ? (totalEMI / monthlyIncome) * 100 : 0} max={100} color={totalEMI / monthlyIncome > 0.4 ? 'bg-destructive' : 'bg-primary'} />
+              <HealthIndicator label="Investment Coverage" value={totalSIPMonthly > 0 ? (totalSIPMonthly / monthlyIncome) * 100 : 0} max={30} color="bg-secondary" />
+              <HealthIndicator label="Expense Control" value={(1 - ratio) * 100} max={100} color={ratio > 0.8 ? 'bg-destructive' : 'bg-success'} />
+            </div>
+          </GlassCard>
+        </motion.div>
+
+        {/* AI Advisor Summary + Anomalies */}
+        <div className="grid lg:grid-cols-2 gap-6">
+          <motion.div variants={item}>
+            <GlassCard className="h-full" onClick={() => navigate('/advisor')}>
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-400 to-indigo-600 flex items-center justify-center shadow-lg">
+                  <Brain className="w-4 h-4 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold font-display">AI Financial Advice</h3>
+                  <p className="text-[10px] text-muted-foreground">Top recommendations</p>
+                </div>
+              </div>
+              <div className="space-y-3">
+                {topAdvice.map((a, i) => (
+                  <div key={i} className="flex items-start gap-3">
+                    <span className="text-sm flex-shrink-0">{a.icon}</span>
+                    <div>
+                      <p className="text-xs font-semibold">{a.title}</p>
+                      <p className="text-[11px] text-muted-foreground line-clamp-2">{a.description}</p>
+                    </div>
+                    <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium flex-shrink-0 ${
+                      a.priority === 'high' ? 'bg-destructive/10 text-destructive' :
+                      a.priority === 'medium' ? 'bg-warning/10 text-warning' :
+                      'bg-success/10 text-success'
+                    }`}>{a.priority}</span>
+                  </div>
+                ))}
+              </div>
+            </GlassCard>
+          </motion.div>
+
+          <motion.div variants={item}>
+            <GlassCard className="h-full" onClick={() => navigate('/anomalies')}>
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg">
+                  <AlertTriangle className="w-4 h-4 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold font-display">Spending Anomalies</h3>
+                  <p className="text-[10px] text-muted-foreground">{anomalies.length} unusual transaction{anomalies.length !== 1 ? 's' : ''} detected</p>
+                </div>
+              </div>
+              {anomalies.length === 0 ? (
+                <p className="text-sm text-success font-medium">✓ No unusual spending detected</p>
+              ) : (
+                <div className="space-y-2.5">
+                  {anomalies.slice(0, 3).map((a, i) => (
+                    <div key={i} className="flex items-center justify-between text-xs">
+                      <div>
+                        <p className="font-medium">{a.transaction.description}</p>
+                        <p className="text-muted-foreground">{a.deviation}x above avg · {a.transaction.category}</p>
+                      </div>
+                      <span className={`font-bold ${
+                        a.severity === 'severe' ? 'text-destructive' : a.severity === 'moderate' ? 'text-warning' : 'text-primary'
+                      }`}>₹{a.transaction.amount.toLocaleString()}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </GlassCard>
+          </motion.div>
+        </div>
+
+        {/* Investment Recommendation Summary */}
+        <motion.div variants={item}>
+          <GlassCard onClick={() => navigate('/investments')}>
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-teal-400 to-emerald-600 flex items-center justify-center shadow-lg">
+                <BarChart3 className="w-4 h-4 text-white" />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold font-display">Investment Recommendations</h3>
+                <p className="text-[10px] text-muted-foreground">Profile: <span className="font-semibold capitalize">{profile}</span></p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {recommendations.map((rec, i) => (
+                <div key={i} className="text-center p-3 rounded-xl bg-muted/50">
+                  <p className="text-lg font-bold font-display text-primary">{rec.allocation}%</p>
+                  <p className="text-[10px] text-muted-foreground font-medium mt-0.5">{rec.type}</p>
+                </div>
+              ))}
+            </div>
+          </GlassCard>
+        </motion.div>
+
         {/* New feature mini-cards */}
         <motion.div variants={item} className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {miniCards.map((c) => (
@@ -162,7 +294,7 @@ export default function DashboardPage() {
               <div className="grid grid-cols-3 gap-4 text-center">
                 <div>
                   <p className="text-xs text-muted-foreground">Savings</p>
-                  <p className="text-lg font-bold font-display text-emerald-500">₹{latestSavings.savings.toLocaleString()}</p>
+                  <p className="text-lg font-bold font-display text-success">₹{latestSavings.savings.toLocaleString()}</p>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Expenses</p>
@@ -170,7 +302,7 @@ export default function DashboardPage() {
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Investments</p>
-                  <p className="text-lg font-bold font-display text-amber-500">₹{latestSavings.investments.toLocaleString()}</p>
+                  <p className="text-lg font-bold font-display text-warning">₹{latestSavings.investments.toLocaleString()}</p>
                 </div>
               </div>
             </GlassCard>

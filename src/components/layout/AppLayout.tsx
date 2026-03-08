@@ -5,11 +5,15 @@ import {
   Home, LayoutDashboard, ArrowLeftRight, MessageSquare,
   Shield, CreditCard, Bell, LogOut, TrendingUp, Upload,
   Target, User, ShieldCheck, LineChart, PieChart, Banknote, Landmark,
+  Brain, AlertTriangle, BarChart3,
 } from 'lucide-react';
 
 const navItems = [
   { to: '/home', label: 'Home', icon: Home },
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { to: '/advisor', label: 'AI Advisor', icon: Brain },
+  { to: '/anomalies', label: 'Anomalies', icon: AlertTriangle },
+  { to: '/investments', label: 'Invest', icon: BarChart3 },
   { to: '/transactions', label: 'Transactions', icon: ArrowLeftRight },
   { to: '/import', label: 'Import CSV', icon: Upload },
   { to: '/predictions', label: 'Predictions', icon: TrendingUp },
