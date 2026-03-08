@@ -17,6 +17,11 @@ import Chat from "./pages/Chat";
 import CSVUpload from "./pages/CSVUpload";
 import Goals from "./pages/Goals";
 import Personality from "./pages/Personality";
+import Insurance from "./pages/Insurance";
+import SIP from "./pages/SIP";
+import EMIPage from "./pages/EMI";
+import LoansPage from "./pages/Loans";
+import SavingsDivisionPage from "./pages/SavingsDivision";
 import AppLayout from "./components/layout/AppLayout";
 import NotFound from "./pages/NotFound";
 
@@ -29,6 +34,14 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <AppLayout>{children}</AppLayout>;
 }
 
+/** Protected but without sidebar — used for the Home landing */
+function ProtectedClean({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+  if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>;
+  if (!user) return <Navigate to="/auth" replace />;
+  return <>{children}</>;
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -39,7 +52,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<AuthPage />} />
-            <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+            <Route path="/home" element={<ProtectedClean><Home /></ProtectedClean>} />
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/transactions" element={<ProtectedRoute><Transactions /></ProtectedRoute>} />
             <Route path="/predictions" element={<ProtectedRoute><Predictions /></ProtectedRoute>} />
@@ -50,6 +63,11 @@ const App = () => (
             <Route path="/import" element={<ProtectedRoute><CSVUpload /></ProtectedRoute>} />
             <Route path="/goals" element={<ProtectedRoute><Goals /></ProtectedRoute>} />
             <Route path="/personality" element={<ProtectedRoute><Personality /></ProtectedRoute>} />
+            <Route path="/insurance" element={<ProtectedRoute><Insurance /></ProtectedRoute>} />
+            <Route path="/sip" element={<ProtectedRoute><SIP /></ProtectedRoute>} />
+            <Route path="/emi" element={<ProtectedRoute><EMIPage /></ProtectedRoute>} />
+            <Route path="/loans" element={<ProtectedRoute><LoansPage /></ProtectedRoute>} />
+            <Route path="/savings-division" element={<ProtectedRoute><SavingsDivisionPage /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
