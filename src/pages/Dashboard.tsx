@@ -1,29 +1,19 @@
 import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
-import { TrendingUp, TrendingDown, Wallet, PiggyBank, Sparkles, Lightbulb } from 'lucide-react';
-import { PieChart, Pie, Cell, ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from 'recharts';
+import { TrendingUp, TrendingDown, Wallet, PiggyBank, Sparkles, Lightbulb, ShieldCheck, LineChart, Banknote, Landmark, PieChart } from 'lucide-react';
+import { PieChart as RePieChart, Pie, Cell, ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from 'recharts';
 import { useFinanceStore } from '@/lib/store';
 import { getFinancialSummary, getMonthlySummary, getCategoryBreakdown, calculateRiskScore, generateAlerts, generateMonthlyInsight } from '@/lib/finance-utils';
 import { CATEGORY_COLORS } from '@/lib/categories';
 import { useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 /* ── Animated counter ── */
 function AnimatedNumber({ value, prefix = '', suffix = '' }: { value: number; prefix?: string; suffix?: string }) {
   const motionVal = useMotionValue(0);
   const rounded = useTransform(motionVal, (v) => `${prefix}${Math.round(v).toLocaleString()}${suffix}`);
   const ref = useRef<HTMLSpanElement>(null);
-
-  useEffect(() => {
-    const controls = animate(motionVal, value, { duration: 1.4, ease: 'easeOut' });
-    return controls.stop;
-  }, [value, motionVal]);
-
-  useEffect(() => {
-    const unsub = rounded.on('change', (v) => {
-      if (ref.current) ref.current.textContent = v;
-    });
-    return unsub;
-  }, [rounded]);
-
+  useEffect(() => { const c = animate(motionVal, value, { duration: 1.4, ease: 'easeOut' }); return c.stop; }, [value, motionVal]);
+  useEffect(() => { const u = rounded.on('change', (v) => { if (ref.current) ref.current.textContent = v; }); return u; }, [rounded]);
   return <span ref={ref}>{prefix}0{suffix}</span>;
 }
 
@@ -32,25 +22,18 @@ function RiskGauge({ score, level }: { score: number; level: string }) {
   const radius = 54;
   const circumference = 2 * Math.PI * radius;
   const color = score <= 30 ? 'hsl(152,60%,45%)' : score <= 60 ? 'hsl(38,92%,50%)' : 'hsl(0,72%,51%)';
-
   return (
     <div className="flex flex-col items-center gap-2">
       <div className="relative w-36 h-36">
         <svg viewBox="0 0 120 120" className="w-full h-full -rotate-90">
           <circle cx="60" cy="60" r={radius} fill="none" stroke="hsla(240,15%,90%,0.3)" strokeWidth="10" />
-          <motion.circle
-            cx="60" cy="60" r={radius} fill="none"
-            stroke={color} strokeWidth="10" strokeLinecap="round"
-            strokeDasharray={circumference}
-            initial={{ strokeDashoffset: circumference }}
+          <motion.circle cx="60" cy="60" r={radius} fill="none" stroke={color} strokeWidth="10" strokeLinecap="round"
+            strokeDasharray={circumference} initial={{ strokeDashoffset: circumference }}
             animate={{ strokeDashoffset: circumference - (circumference * score) / 100 }}
-            transition={{ duration: 1.6, ease: 'easeOut' }}
-          />
+            transition={{ duration: 1.6, ease: 'easeOut' }} />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-3xl font-bold font-display" style={{ color }}>
-            <AnimatedNumber value={score} />
-          </span>
+          <span className="text-3xl font-bold font-display" style={{ color }}><AnimatedNumber value={score} /></span>
           <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium">{level}</span>
         </div>
       </div>
@@ -58,16 +41,13 @@ function RiskGauge({ score, level }: { score: number; level: string }) {
   );
 }
 
-/* ── Glass card wrapper ── */
-function GlassCard({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+function GlassCard({ children, className = '', onClick }: { children: React.ReactNode; className?: string; onClick?: () => void }) {
   return (
-    <motion.div
+    <motion.div onClick={onClick}
       whileHover={{ y: -3, boxShadow: '0 20px 50px -12px hsla(239,60%,50%,0.18)' }}
       transition={{ type: 'spring', stiffness: 300, damping: 24 }}
-      className={`relative overflow-hidden rounded-2xl border border-white/20 bg-white/60 dark:bg-white/5 backdrop-blur-2xl p-6 shadow-[0_8px_32px_-8px_hsla(239,60%,40%,0.10)] ${className}`}
-    >
-      {children}
-    </motion.div>
+      className={`relative overflow-hidden rounded-2xl border border-white/20 bg-white/60 dark:bg-white/5 backdrop-blur-2xl p-6 shadow-[0_8px_32px_-8px_hsla(239,60%,40%,0.10)] ${onClick ? 'cursor-pointer' : ''} ${className}`}
+    >{children}</motion.div>
   );
 }
 
@@ -75,12 +55,19 @@ const container = { hidden: {}, show: { transition: { staggerChildren: 0.09, del
 const item = { hidden: { opacity: 0, y: 18 }, show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] } } };
 
 export default function DashboardPage() {
-  const { transactions } = useFinanceStore();
+  const navigate = useNavigate();
+  const { transactions, insurancePolicies, sipInvestments, emis, loans, savingsDivisions } = useFinanceStore();
   const { totalIncome, totalExpenses, savings, ratio } = getFinancialSummary(transactions);
   const monthly = getMonthlySummary(transactions);
   const categories = getCategoryBreakdown(transactions);
   const { score, level } = calculateRiskScore(transactions);
   const alerts = generateAlerts(transactions);
+
+  const insuranceDue = insurancePolicies.filter(p => p.status !== 'paid').reduce((s, p) => s + p.premiumAmount, 0);
+  const totalSIPMonthly = sipInvestments.reduce((s, i) => s + i.monthlyAmount, 0);
+  const totalEMI = emis.reduce((s, e) => s + e.emiAmount, 0);
+  const totalLoanOutstanding = loans.reduce((s, l) => s + l.remainingBalance, 0);
+  const latestSavings = savingsDivisions[savingsDivisions.length - 1];
 
   const stats = [
     { label: 'Total Income', value: totalIncome, icon: TrendingUp, accent: 'from-emerald-400 to-emerald-600' },
@@ -89,9 +76,15 @@ export default function DashboardPage() {
     { label: 'Expense Ratio', value: Math.round(ratio * 100), icon: Wallet, accent: 'from-amber-400 to-orange-500', suffix: '%' },
   ];
 
+  const miniCards = [
+    { label: 'Insurance Due', value: insuranceDue, icon: ShieldCheck, accent: 'from-sky-400 to-blue-600', route: '/insurance' },
+    { label: 'Monthly SIP', value: totalSIPMonthly, icon: LineChart, accent: 'from-teal-400 to-emerald-600', route: '/sip' },
+    { label: 'Monthly EMI', value: totalEMI, icon: Banknote, accent: 'from-orange-400 to-red-500', route: '/emi' },
+    { label: 'Loans Outstanding', value: totalLoanOutstanding, icon: Landmark, accent: 'from-pink-400 to-rose-600', route: '/loans' },
+  ];
+
   return (
     <div className="relative min-h-full">
-      {/* Gradient background blobs */}
       <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
         <div className="absolute -top-32 -right-32 w-[500px] h-[500px] rounded-full bg-[radial-gradient(circle,hsla(239,100%,69%,0.12),transparent_70%)]" />
         <div className="absolute top-1/2 -left-48 w-[600px] h-[600px] rounded-full bg-[radial-gradient(circle,hsla(253,100%,87%,0.10),transparent_70%)]" />
@@ -108,9 +101,7 @@ export default function DashboardPage() {
           <h1 className="text-3xl md:text-4xl font-bold font-display">
             Good {new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 18 ? 'afternoon' : 'evening'} 👋
           </h1>
-          <p className="text-muted-foreground mt-1.5 text-sm max-w-md">
-            Here's what's happening with your finances today.
-          </p>
+          <p className="text-muted-foreground mt-1.5 text-sm max-w-md">Here's what's happening with your finances today.</p>
         </motion.div>
 
         {/* Alert */}
@@ -128,7 +119,7 @@ export default function DashboardPage() {
           </motion.div>
         )}
 
-        {/* Stat cards */}
+        {/* Main stat cards */}
         <motion.div variants={item} className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {stats.map((s) => (
             <GlassCard key={s.label} className="p-5">
@@ -137,18 +128,57 @@ export default function DashboardPage() {
               </div>
               <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider mb-1">{s.label}</p>
               <p className="text-2xl md:text-3xl font-bold font-display tracking-tight">
-                {s.suffix
-                  ? <AnimatedNumber value={s.value} suffix={s.suffix} />
-                  : <AnimatedNumber value={s.value} prefix="₹" />
-                }
+                {s.suffix ? <AnimatedNumber value={s.value} suffix={s.suffix} /> : <AnimatedNumber value={s.value} prefix="₹" />}
               </p>
             </GlassCard>
           ))}
         </motion.div>
 
+        {/* New feature mini-cards */}
+        <motion.div variants={item} className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {miniCards.map((c) => (
+            <GlassCard key={c.label} className="p-5" onClick={() => navigate(c.route)}>
+              <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${c.accent} flex items-center justify-center mb-3 shadow-lg`}>
+                <c.icon className="w-4 h-4 text-white" />
+              </div>
+              <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider mb-1">{c.label}</p>
+              <p className="text-xl font-bold font-display tracking-tight">₹{c.value.toLocaleString()}</p>
+            </GlassCard>
+          ))}
+        </motion.div>
+
+        {/* Savings allocation */}
+        {latestSavings && (
+          <motion.div variants={item}>
+            <GlassCard onClick={() => navigate('/savings-division')}>
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-400 to-indigo-600 flex items-center justify-center shadow-lg">
+                  <PieChart className="w-4 h-4 text-white" />
+                </div>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-primary">Monthly Allocation — {latestSavings.month}</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-4 text-center">
+                <div>
+                  <p className="text-xs text-muted-foreground">Savings</p>
+                  <p className="text-lg font-bold font-display text-emerald-500">₹{latestSavings.savings.toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Expenses</p>
+                  <p className="text-lg font-bold font-display text-primary">₹{latestSavings.expenses.toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Investments</p>
+                  <p className="text-lg font-bold font-display text-amber-500">₹{latestSavings.investments.toLocaleString()}</p>
+                </div>
+              </div>
+            </GlassCard>
+          </motion.div>
+        )}
+
         {/* Charts row */}
         <div className="grid lg:grid-cols-5 gap-6">
-          {/* Monthly Trend */}
           <motion.div variants={item} className="lg:col-span-3">
             <GlassCard className="p-0">
               <div className="px-6 pt-6 pb-2">
@@ -170,17 +200,8 @@ export default function DashboardPage() {
                     </defs>
                     <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'hsl(240,10%,55%)' }} axisLine={false} tickLine={false} />
                     <YAxis tick={{ fontSize: 11, fill: 'hsl(240,10%,55%)' }} axisLine={false} tickLine={false} tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}k`} />
-                    <Tooltip
-                      contentStyle={{
-                        background: 'hsla(0,0%,100%,0.85)',
-                        backdropFilter: 'blur(12px)',
-                        border: '1px solid hsla(240,10%,90%,0.5)',
-                        borderRadius: '12px',
-                        boxShadow: '0 8px 32px -8px hsla(239,60%,40%,0.12)',
-                        fontSize: 12,
-                      }}
-                      formatter={(v: number) => [`₹${v.toLocaleString()}`, '']}
-                    />
+                    <Tooltip contentStyle={{ background: 'hsla(0,0%,100%,0.85)', backdropFilter: 'blur(12px)', border: '1px solid hsla(240,10%,90%,0.5)', borderRadius: '12px', boxShadow: '0 8px 32px -8px hsla(239,60%,40%,0.12)', fontSize: 12 }}
+                      formatter={(v: number) => [`₹${v.toLocaleString()}`, '']} />
                     <Area type="monotone" dataKey="income" stroke="hsl(152,60%,45%)" fill="url(#incGrad)" strokeWidth={2.5} dot={false} name="Income" />
                     <Area type="monotone" dataKey="expenses" stroke="hsl(239,100%,69%)" fill="url(#expGrad)" strokeWidth={2.5} dot={false} name="Expenses" />
                   </AreaChart>
@@ -189,7 +210,6 @@ export default function DashboardPage() {
             </GlassCard>
           </motion.div>
 
-          {/* Category Pie */}
           <motion.div variants={item} className="lg:col-span-2">
             <GlassCard className="p-0 h-full flex flex-col">
               <div className="px-6 pt-6 pb-1">
@@ -198,23 +218,15 @@ export default function DashboardPage() {
               </div>
               <div className="h-48 px-2 flex-shrink-0">
                 <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
+                  <RePieChart>
                     <Pie data={categories.slice(0, 6)} cx="50%" cy="50%" innerRadius={42} outerRadius={72} dataKey="value" paddingAngle={4} cornerRadius={4}>
                       {categories.slice(0, 6).map((c, i) => (
                         <Cell key={c.name} fill={CATEGORY_COLORS[c.name] || `hsl(${i * 55 + 240}, 65%, 60%)`} />
                       ))}
                     </Pie>
-                    <Tooltip
-                      contentStyle={{
-                        background: 'hsla(0,0%,100%,0.85)',
-                        backdropFilter: 'blur(12px)',
-                        border: '1px solid hsla(240,10%,90%,0.5)',
-                        borderRadius: '12px',
-                        fontSize: 12,
-                      }}
-                      formatter={(v: number) => [`₹${v.toLocaleString()}`, '']}
-                    />
-                  </PieChart>
+                    <Tooltip contentStyle={{ background: 'hsla(0,0%,100%,0.85)', backdropFilter: 'blur(12px)', border: '1px solid hsla(240,10%,90%,0.5)', borderRadius: '12px', fontSize: 12 }}
+                      formatter={(v: number) => [`₹${v.toLocaleString()}`, '']} />
+                  </RePieChart>
                 </ResponsiveContainer>
               </div>
               <div className="px-6 pb-5 space-y-2.5 mt-auto">
@@ -238,16 +250,14 @@ export default function DashboardPage() {
             <div className="flex flex-col md:flex-row items-center justify-between gap-6">
               <div className="text-center md:text-left">
                 <h3 className="text-base font-semibold font-display">Financial Risk Score</h3>
-                <p className="text-xs text-muted-foreground mt-1 max-w-xs">
-                  Calculated from your spending ratio, savings consistency, and expense volatility.
-                </p>
+                <p className="text-xs text-muted-foreground mt-1 max-w-xs">Calculated from your spending ratio, savings consistency, and expense volatility.</p>
               </div>
               <RiskGauge score={score} level={level} />
             </div>
           </GlassCard>
         </motion.div>
 
-        {/* AI Insight of the Month */}
+        {/* AI Insight */}
         <motion.div variants={item}>
           <GlassCard className="border-l-4 border-l-primary/50">
             <div className="flex items-start gap-4">
