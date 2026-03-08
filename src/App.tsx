@@ -22,6 +22,9 @@ import SIP from "./pages/SIP";
 import EMIPage from "./pages/EMI";
 import LoansPage from "./pages/Loans";
 import SavingsDivisionPage from "./pages/SavingsDivision";
+import AdvisorPage from "./pages/Advisor";
+import AnomaliesPage from "./pages/Anomalies";
+import InvestmentsPage from "./pages/Investments";
 import AppLayout from "./components/layout/AppLayout";
 import NotFound from "./pages/NotFound";
 
@@ -34,7 +37,6 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <AppLayout>{children}</AppLayout>;
 }
 
-/** Protected but without sidebar — used for the Home landing */
 function ProtectedClean({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>;
@@ -68,6 +70,9 @@ const App = () => (
             <Route path="/emi" element={<ProtectedRoute><EMIPage /></ProtectedRoute>} />
             <Route path="/loans" element={<ProtectedRoute><LoansPage /></ProtectedRoute>} />
             <Route path="/savings-division" element={<ProtectedRoute><SavingsDivisionPage /></ProtectedRoute>} />
+            <Route path="/advisor" element={<ProtectedRoute><AdvisorPage /></ProtectedRoute>} />
+            <Route path="/anomalies" element={<ProtectedRoute><AnomaliesPage /></ProtectedRoute>} />
+            <Route path="/investments" element={<ProtectedRoute><InvestmentsPage /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
