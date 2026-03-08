@@ -18,3 +18,4 @@ Financial predictions and insights.
 Frontend – React  
 Backend – Supabase
 
+Demo:- https://savora-fin-assist.vercel.app/
